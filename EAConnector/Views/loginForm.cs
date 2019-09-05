@@ -79,6 +79,7 @@ namespace EAInnovator.Views
                 IEACConfig._["Password"] = PasswordBox.Text;
 
                 IEACConfig._.save();
+                LoginForm.ActiveForm.Close();
             }
         }
 

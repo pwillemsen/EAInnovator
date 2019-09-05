@@ -25,7 +25,7 @@ namespace EAInnovator.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("solutions")]
+        [global::System.Configuration.DefaultSettingValueAttribute("Innovator12SP0")]
         public string Database {
             get {
                 return ((string)(this["Database"]));
@@ -43,7 +43,7 @@ namespace EAInnovator.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("http://pwillemsen16/Innovator12SP0")]
+        [global::System.Configuration.DefaultSettingValueAttribute("http://localhost/Innovator12SP0/")]
         public string ServerURL {
             get {
                 return ((string)(this["ServerURL"]));

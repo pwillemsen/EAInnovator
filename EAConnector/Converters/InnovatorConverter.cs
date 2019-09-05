@@ -1,9 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 using System.Globalization;
 
 using Aras.IOM;
@@ -12,13 +8,12 @@ using EAInnovator.Helpers;
 
 namespace EAInnovator.Converters
 {
+    /// <summary>
+    /// Aras Innovator artifacts to Sparx Systems Enterprise Architect elements conversion and vice versa
+    /// </summary>
     public class InnovatorConverter
     {
-        private Dictionary<string, string> classSubstitution = new Dictionary<string, string>()
-        {
-            { "Block", "Class" },
-            { "Part", "Object" },
-        };
+        private Dictionary<string, EA.Element> elementDictionary = new Dictionary<string, EA.Element>();
 
         public Item RootItem { get; private set; }
 
@@ -31,8 +26,31 @@ namespace EAInnovator.Converters
         /// PLM to EA
         /// ----------------------------------------------------------------------------------------------------------------
 
+        public EA.Element SetEAElementInPackage(EA.Package activePackage)
+        {
+            /// <summary>
+            /// Create initial dictionary of EA Elements witinn the package
+            /// NOTE: may be placed in EAUtils on initialization
+            /// <paramref name="activePackage"/> EA Package
+            /// </summary>
+            foreach (EA.Element activeElement in activePackage.Elements)
+            {
+                if (activeElement.Tag.Length != 0)
+                {
+                    elementDictionary.Add(activeElement.Tag.Replace("[PLM]", ""), activeElement);
+                }
+            }
+            return null;
+        }
+
         public EA.Element GetEAElementInPackage(Item innovatorItem, EA.Package activePackage)
         {
+            /// <summary>
+            /// Return EA Element by element [PLM] Tag
+            /// NOTE: Slow performance
+            /// <paramref name="innovatorItem"/> Innovator Item (ItemType)
+            /// <paramref name="activePackage"/> EA Package
+            /// </summary>
             foreach (EA.Element activeElement in activePackage.Elements)
             {
                 if (activeElement.Tag.Length != 0)
@@ -46,23 +64,27 @@ namespace EAInnovator.Converters
             return null;
         }
 
-        public EA.Element GetEAElementByIDInPackage(string itemID, EA.Package activePackage)
+        public EA.Element GetEAElementByInnovatorID(String id)
         {
-            foreach (EA.Element activeElement in activePackage.Elements)
-            {
-                if (activeElement.Tag.Length != 0)
-                {
-                    if (activeElement.Tag.IndexOf(itemID) > 0)
-                    {
-                        return activeElement;
-                    }
-                }
-            }
-            return null;
+            /// <summary>
+            /// Return EA Element from dictionary
+            /// <paramref name="id"/> Innovator ID
+            /// </summary>
+            EA.Element element = null;
+            if (elementDictionary.TryGetValue(id, out element))
+                return element;
+            else
+                return null;
         }
 
         public EA.Package CreateEAPackage(EA.Repository Repository, string packageName, EA.Package parentPackage)
         {
+            /// <summary>
+            /// Create EA package from root or as sub-package
+            /// <paramref name="Repository"/> Active repository
+            /// <paramref name="packageName"/> Name of the new package
+            /// <paramref name="parentPackage"/> Name of the parent package (root if empty)
+            /// </summary>
             EA.Collection collection = Repository.Models; // Get model collection
             EA.Package rootPackage = collection.GetAt(0);
             EA.Package package = null;
@@ -77,7 +99,12 @@ namespace EAInnovator.Converters
                     startPackage = parentPackage;
                 }
                 // Check if a package with packageName already exists
-                package = activeRepository.getPackageByName(startPackage, packageName);
+                package = activeRepository.GetPackageByName(startPackage, packageName);
+                if (package != null)
+                {
+                    // Package exists and we start collect all elements in a dictionary for performance reasons
+                    SetEAElementInPackage(package);
+                }
             }
             
             if (rootPackage != null && package == null && parentPackage == null)
@@ -104,9 +131,20 @@ namespace EAInnovator.Converters
             return package;
         }
 
-        public EA.Element CreateEAInnovatorClass(Item innovatorItem, EA.Package classPackage, EAUtils activeRepository)
+        public EA.Element CreateEAElement(Item innovatorItem, EA.Package classPackage)
         {
-            EA.Element returnElement = GetEAElementInPackage(innovatorItem, classPackage); ;
+            /// <summary>
+            /// <paramref name="innovatorItem"/> Innovator Item (ItemType)
+            /// <paramref name="classPackage"/> EA Package (Innovator/ItemTypes or Innovator/RelationshipTypes)
+            /// </summary>
+            string itemID = innovatorItem.getID();
+            EA.Element returnElement = GetEAElementByInnovatorID(itemID);
+            if (returnElement == null)
+            {
+                // Dictionary may be empty, so we need to check by using the package
+                // Unfortunately this check is much slower
+                returnElement = GetEAElementInPackage(innovatorItem, classPackage);
+            }
             if (returnElement == null)
             { 
                 DateTime createdOn = Tools.GetDate(innovatorItem.getProperty("created_on", ""));
@@ -121,10 +159,10 @@ namespace EAInnovator.Converters
                 string implementationType = innovatorItem.getProperty("implementation_type");
                 switch (implementationType)
                 {
-                    case "table": // polymorphic, federated
+                    case "table": // TODO: polymorphic, federated need to be implemented
                     case null: // relationship type
                         EA.Element classElement = classPackage.Elements.AddNew(innovatorItem.getProperty("name"), "Table");
-                        classElement.Alias = innovatorItem.getProperty("name").ToLower().Replace(" ", "_");
+                        classElement.Alias = innovatorItem.getProperty("label");
                         classElement.Notes = innovatorItem.getProperty("description", "");
                         classElement.Created = createdOn;
                         if (modifiedOn > createdOn)
@@ -132,7 +170,7 @@ namespace EAInnovator.Converters
                             classElement.Modified = modifiedOn;
                         }
                         classElement.Version = innovatorItem.getProperty("generation", "");
-                        classElement.Tag = "[PLM]" + innovatorItem.getID();
+                        classElement.Tag = "[PLM]" + itemID;
                         classElement.Update();
                         classPackage.Update();
                         returnElement = classElement;
@@ -141,42 +179,62 @@ namespace EAInnovator.Converters
                         break;
                 }
             }
+            if (!elementDictionary.ContainsKey(itemID))
+            {
+                elementDictionary.Add(itemID, returnElement);
+            }
             return returnElement;            
         }
-        public EA.Element CreateEAInnovatorConnector(Item innovatorItem, EA.Package activePackage, EAUtils activeRepository)
+
+        public EA.Element CreateEAConnector(Item innovatorItem)
         {
+            /// <summary>
+            /// Create EA Connector between two EA Elements (SupplierID)
+            /// <paramref name="innovatorItem"/> Innovator Item (RelationshipType)
+            /// </summary>
             string sourceId = innovatorItem.getProperty("source_id", "");
             string relatedId = innovatorItem.getProperty("related_id", "");
             string relationshipName = innovatorItem.getProperty("name", "");
             if (sourceId != null && relatedId != null)
             {
-                EA.Element parentElement = GetEAElementByIDInPackage(sourceId, activePackage);
-                EA.Element childElement = GetEAElementByIDInPackage(relatedId, activePackage);
-
                 try
                 {
-                    // Add connector between structure elements
-                    EA.Connector structureConnector = parentElement.Connectors.AddNew(relationshipName, "Association");
-                    structureConnector.SupplierID = childElement.ElementID;
-                    structureConnector.Update();
+                    EA.Element parentElement = GetEAElementByInnovatorID(sourceId);
+                    EA.Element childElement = GetEAElementByInnovatorID(relatedId);
+                    bool connectorExists = false;
+                    foreach (EA.Connector parentConnector in parentElement.Connectors)
+                    {
+                        // Check if the connector already exists
+                        if (parentConnector.Name == relationshipName)
+                        {
+                            connectorExists = true;
+                        }
+                    }
+                    if (!connectorExists)
+                    {
+                        // Add connector between structure elements
+                        EA.Connector structureConnector = parentElement.Connectors.AddNew(relationshipName, "Association");
+                        structureConnector.SupplierID = childElement.ElementID;
+                        structureConnector.Update();
+                    }
                 }
                 catch
                 {
-                    // No parent block element
+                    // No parent block element or no connectors
                 }
             }
             return null;
         }
 
-        /// <summary>
-        /// Load from PLM and create in EA
-        /// </summary>
         public void LoadDatamodel(EA.Repository Repository)
         {
-            if (System.Diagnostics.Debugger.Launch()) System.Diagnostics.Debugger.Break();
+            /// <summary>
+            /// Load data model from PLM and create elements in EA
+            /// </summary>
+            
+            // if (System.Diagnostics.Debugger.Launch()) System.Diagnostics.Debugger.Break();
             EA.Collection collection = Repository.Models; // Get model collection
             EAUtils activeRepository = new EAUtils(Repository);
-
 
             EA.Package package = CreateEAPackage(Repository, "Innovator", null);
             EA.Package typePackage = CreateEAPackage(Repository, "ItemTypes", package);
@@ -187,36 +245,31 @@ namespace EAInnovator.Converters
             // Load RelationshipTypes
             Item innovatorRelationshipTypes = InnovatorService._.GetRelationshipTypes();
 
-            // Create EA objects
+            // Create EA Elements (<<Table>>) in Innovator/ItemTypes Package
             int count = innovatorItemTypes.getItemCount();
             for (int i = 0; i < count; i++)
             {
                 Item innovatorItemType = innovatorItemTypes.getItemByIndex(i);
                 string typeName = innovatorItemType.getType();
-                CreateEAInnovatorClass(innovatorItemType, typePackage, activeRepository);
-                
+                CreateEAElement(innovatorItemType, typePackage);
             }
-            typePackage.Update();
-            package.Update();
-            collection.Refresh();
 
+            // Create EA Elements (<<Table>>) in Innovator/RelationshipTypes Package
             count = innovatorRelationshipTypes.getItemCount();
             for (int j = 0; j < count; j++)
             {
                 Item innovatorRelationshipType = innovatorRelationshipTypes.getItemByIndex(j);
                 string typeName = innovatorRelationshipType.getType();
-                CreateEAInnovatorClass(innovatorRelationshipType, relationPackage, activeRepository);
+                CreateEAElement(innovatorRelationshipType, relationPackage);
             }
-            relationPackage.Update();
-            package.Update();
-            collection.Refresh();
 
-            //for (int k = 0; k < count; k++)
-            //{
-            //    Item innovatorRelationshipType = innovatorRelationshipTypes.getItemByIndex(k);
-            //    string typeName = innovatorRelationshipType.getType();
-            //    CreateEAInnovatorConnector(innovatorRelationshipType, typePackage, activeRepository);
-            //}
+            // Create EA Connectors between tables (Relationships)
+            for (int k = 0; k < count; k++)
+            {
+                Item innovatorRelationshipType = innovatorRelationshipTypes.getItemByIndex(k);
+                string typeName = innovatorRelationshipType.getType();
+                CreateEAConnector(innovatorRelationshipType);
+            }
 
             collection.Refresh();
         }

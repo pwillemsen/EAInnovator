@@ -1,10 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.IO;
-
 using Aras.IOM;
 
 namespace EAInnovator.Services
@@ -104,23 +98,11 @@ namespace EAInnovator.Services
             return error.isError();
         }
 
-        public Item GetItemByGUID(string itemType, string guid)
-        {
-            Item req = innovator.newItem(itemType, "get");
-            req.setProperty("external_id", guid);
-            return req.apply();
-        }
-
-        public Item GetItemByID(string itemType, string id)
-        {
-            Item req = innovator.newItem(itemType, "get");
-            req.setID(id);
-            return req.apply();
-        }
-
         public Item GetItemTypes()
         {
-            // Get all ItemTypes in Aras Innovator
+            /// <summary>
+            /// Retrieve all ItemTypes from Aras Innovator except relationship ItemTypes
+            /// </summary>
             Item plmItemTypes = innovator.newItem("ItemType", "get");
             plmItemTypes.setProperty("is_relationship", "0");
             plmItemTypes = plmItemTypes.apply();
@@ -129,7 +111,9 @@ namespace EAInnovator.Services
 
         public Item GetRelationshipTypes()
         {
-            // Get all ItemTypes in Aras Innovator
+            /// <summary>
+            /// Retrieve all RelationshipTypes from Aras Innovator
+            /// </summary>
             Item plmRelationshipTypes = innovator.newItem("RelationshipType", "get");
             plmRelationshipTypes = plmRelationshipTypes.apply();
             return plmRelationshipTypes;

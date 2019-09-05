@@ -9,10 +9,12 @@ using EAInnovator.Converters;
 
 namespace EnterpriseArchitectInnovator
 {
-	/// <summary>
-	/// Summary description for Class1.
-	/// </summary>
-	public class Main
+    /// <summary>
+    /// The Main class loads the Sparx Systems Enterprise Architect (EA) Add-in.
+    /// The menu entries are within the EA Specialize toolbar section
+    /// https://sparxsystems.com.au/enterprise_architect_user_guide/14.0/automation/codeexamples.html
+    /// </summary>
+    public class Main
 	{
 		public String EA_Connect(EA.Repository Repository) 
 		{
@@ -20,14 +22,15 @@ namespace EnterpriseArchitectInnovator
 			return "";
 		}
 
-		public void EA_ShowHelp(EA.Repository Repository, string Location, string MenuName, string ItemName)
-		{
-			MessageBox.Show("Help for: " + MenuName + "/" + ItemName);
-		}
-
 		public object EA_GetMenuItems(EA.Repository Repository, string Location, string MenuName) 
 		{
-			switch (MenuName)
+            /// <summary>
+            /// Get EA add-in menu items
+            /// <paramref name="Repository"/> Active EA repository
+            /// <paramref name="Location"/> (not used)
+            /// <paramref name="MenuName"/> Name of the EA menu
+            /// </summary>
+            switch (MenuName)
 			{
 				case "":
 					return "-&Innovator";
@@ -38,10 +41,14 @@ namespace EnterpriseArchitectInnovator
 			return "";
 		}
 
-		bool IsProjectOpen(EA.Repository Repository)
+        private bool IsProjectOpen(EA.Repository Repository)
 		{
-			try
-			{
+            /// <summary>
+            /// The isProjectOpen method verifies if an EA project file (eap) is loaded
+            /// <paramref name="Repository"/> Active EA repository
+            /// </summary>
+            try
+            {
 				EA.Collection c = Repository.Models;
 				return true;
 			}
@@ -53,9 +60,18 @@ namespace EnterpriseArchitectInnovator
 
 		public void EA_GetMenuState(EA.Repository Repository, string Location, string MenuName, string ItemName, ref bool IsEnabled, ref bool IsChecked)
 		{
+            /// <summary>
+            /// Determine if the add-in menu shall be active
+            /// <paramref name="Repository"/> Active EA repository
+            /// <paramref name="Location"/> (not used)
+            /// <paramref name="MenuName"/> Name of the EA menu
+            /// <paramref name="ItemName"/> Menu item name
+            /// <paramref name="IsEnabled"/> Menu item enabled/disabled
+            /// <paramref name="IsChecked"/> (not used)
+            /// </summary>
             if (IsProjectOpen(Repository))
             {
-                // Enable open/save menu entries when project is loaded and innovator connection exists
+                // Enable additional menu entries when project is loaded and innovator connection exists
                 if (ItemName != "Aras Login" && !InnovatorService._.IsLoggedIn)
                 {
                     IsEnabled = false;
@@ -75,7 +91,14 @@ namespace EnterpriseArchitectInnovator
 
 		public void EA_MenuClick(EA.Repository Repository, string Location, string MenuName, string ItemName)
 		{
-			switch( ItemName )
+            /// <summary>
+            /// Menu click event
+            /// <paramref name="Repository"/> Active EA repository
+            /// <paramref name="Location"/> (not used)
+            /// <paramref name="MenuName"/> (not used)
+            /// <paramref name="ItemName"/> Menu item name
+            /// </summary>
+			switch (ItemName)
 			{
                 case "Load &Data Model":
                     Item dummyItem = null;

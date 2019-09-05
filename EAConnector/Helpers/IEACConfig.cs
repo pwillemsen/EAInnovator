@@ -1,16 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Configuration;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EAInnovator.Helpers
 {
+    /// <summary>
+    /// Persist application configuration information
+    /// </summary>
     public class IEACConfig
     {
         private static volatile IEACConfig instance;
         private static object syncRoot = new Object();
+        private Configuration configFile;
+        private KeyValueConfigurationCollection appSettings;
 
         public static IEACConfig _
         {
@@ -28,10 +29,6 @@ namespace EAInnovator.Helpers
                 return instance;
             }
         }
-
-        private Configuration configFile;
-        private KeyValueConfigurationCollection appSettings;
-        //private AppSettingsSection appSettings;
 
         public IEACConfig()
         {
@@ -57,8 +54,5 @@ namespace EAInnovator.Helpers
             configFile.Save(ConfigurationSaveMode.Modified);
             ConfigurationManager.RefreshSection(configFile.AppSettings.SectionInformation.Name);
         }
-
     }
-
-
 }

@@ -100,11 +100,6 @@
   <ItemGroup>
     <Compile Include="Converters\InnovatorConverter.cs" />
     <Compile Include="Helpers\EAUtils.cs" />
-    <Compile Include="Helpers\IEACAttachement.cs" />
-    <Compile Include="Helpers\IEACAttribute.cs" />
-    <Compile Include="Helpers\IEACCondition.cs" />
-    <Compile Include="Helpers\IEACFieldMapping.cs" />
-    <Compile Include="Helpers\IEACItem.cs" />
     <Compile Include="Helpers\Tools.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
@@ -118,8 +113,6 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="Converters\ModelDef.cs" />
-    <Compile Include="Services\EAService.cs" />
     <Compile Include="Services\InnovatorService.cs" />
     <Compile Include="Properties\Settings.Designer.cs">
       <AutoGen>True</AutoGen>

@@ -1,26 +1,18 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Globalization;
-using System.Threading.Tasks;
-using System.Text.RegularExpressions;
 
 namespace EAInnovator.Helpers
 {
+    /// <summary>
+    /// Helper class for standard Innovator to EA type conversions
+    /// </summary>
     static class Tools
     {
-        public static string SanitizeIdentifier(string identifier)
-        {
-            if (identifier == null)
-                return null;
-
-            return Regex.Replace(identifier, "[^A-Za-z0-9_]", "_");
-
-        }
-
         public static DateTime GetDate(string dateIn)
         {
+            /// <summary>
+            /// Convert database date/time string (e.g. 2019-10-31T01:00:00) to C# DateTime
+            /// </summary>
             DateTime dateOut = DateTime.Parse(dateIn.Replace("T", " "), CultureInfo.InvariantCulture);
             return dateOut;
         }
